@@ -1,7 +1,9 @@
 # -*- mode: python -*-
 
-from PyInstaller.utils.hooks import collect_data_files
+import os
 import platform
+
+from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
 
@@ -36,22 +38,75 @@ excludes = [
         'PyQt5.QtWebKitWidgets',
         'PyQt5.QtWebSockets']
 
-if platform.system() == "Windows":
+excluded_binaries = [
+        'Qt5DBus.dll',
+        'Qt5Location.dll',
+        'Qt5Network.dll',
+        'Qt5NetworkAuth.dll',
+        'Qt5Nfc.dll',
+        'Qt5Positioning.dll',
+        'Qt5PositioningQuick.dll',
+        'Qt5PrintSupport.dll',
+        'Qt5Qml.dll',
+        'Qt5Quick.dll',
+        'Qt5RemoteObjects.dll',
+        'Qt5WebSockets.dll',
+        'Qt5WinExtras.dll',
+        'Qt5Xml.dll',
+        'Qt5XmlPatterns.dll',
+
+        # macos
+        'QtDeclarative.framework',
+        'QtHelp.framework',
+        'QtMultimedia.framework',
+        'QtNetwork.framework',
+        'QtScript.framework',
+        'QtScriptTools.framework',
+        'QtSql.framework',
+        'QtDesigner.framework',
+        'QtTest.framework',
+        'QtWebKit.framework',
+        'QtXMLPatterns.framework',
+        'QtCLucene.framework',
+        'QtBluetooth.framework',
+        'QtConcurrent.framework',
+        'QtMultimediaWidgets.framework',
+        'QtPositioning.framework',
+        'QtQml.framework',
+        'QtQuick.framework',
+        'QtQuickWidgets.framework',
+        'QtSensors.framework',
+        'QtSerialPort.framework',
+        'QtWebChannel.framework',
+        'QtWebEngine.framework',
+        'QtWebEngineCore.framework',
+        'QtWebEngineWidgets.framework',
+        'QtWebKitWidgets.framework',
+        'QtWebSockets.framework']
+
+
+# the manual bundling of libportaudio can be removed once the following PyInstaller MR is released:
+# https://github.com/pyinstaller/pyinstaller/pull/4498
+# (pyinstaller>3.5)
+if platform.system() == "Windows" or platform.system() == "Darwin":
   sounddevice_data = collect_data_files("sounddevice", subdir="_sounddevice_data")
-  libportaudio = [(file[0], "_sounddevice_data/portaudio-binaries") for file in sounddevice_data if "libportaudio" in file[0]]
+  libportaudio = [(f[0], os.path.join("_sounddevice_data", "portaudio-binaries")) for f in sounddevice_data if "libportaudio" in f[0]]
 
   print(libportaudio)
   if len(libportaudio) != 1:
-    raise ValueError('libportaudio dll could not be found')
+    raise ValueError('libportaudio could not be found')
+else:
+  libportaudio = []
 
+
+if platform.system() == "Windows":
   # workaround for PyInstaller that does not look where the new PyQt5 official wheels put the Qt dlls
   from PyInstaller.compat import getsitepackages
   pathex = [os.path.join(x, 'PyQt5', 'Qt', 'bin') for x in getsitepackages()]
 
   # add vcruntime140.dll - PyInstaller excludes it by default because it thinks it comes from c:\Windows
-  binaries = [('vcruntime140.dll', 'C:\\Python35\\vcruntime140.dll', 'BINARY')]
+  binaries = [('vcruntime140.dll', 'C:\\Python36\\vcruntime140.dll', 'BINARY')]
 else:
-  libportaudio = []
   pathex = []
   binaries = []
 
@@ -66,6 +121,8 @@ a = Analysis(['main.py'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)
+
+a.binaries = TOC([x for x in a.binaries if x[0] not in excluded_binaries])
 
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
@@ -87,3 +144,8 @@ coll = COLLECT(exe,
                strip=False,
                upx=False,
                name='friture')
+
+app = BUNDLE(coll,
+         name='friture.app',
+         icon='resources/images/friture.icns',
+         bundle_identifier=None)

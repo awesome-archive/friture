@@ -19,27 +19,32 @@ fi
 
 pip3 install -r requirements.txt
 
-# py2app and pysinstaller need to have the extensions built explicitely
+# pysinstaller needs to have the extensions built explicitely
 python3 setup.py build_ext --inplace
 
 if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     # Macos    
-    pip3 install -U "py2app==0.14"
-    python3 setup.py py2app
+
+    pip3 install -U pyinstaller==3.5
+
+    pyinstaller friture.spec -y --onedir --windowed
+
+    ls -la dist/*
+
     # prepare a dmg out of friture.app
     export ARTIFACT_FILENAME=friture-$(python3 -c 'import friture; print(friture.__version__)')-$(date +'%Y%m%d').dmg
     echo $ARTIFACT_FILENAME
-    hdiutil create $ARTIFACT_FILENAME -volname "Friture" -fs HFS+ -srcfolder ../friture-dist/
-    du -hs ../friture-dist/friture.app
+    hdiutil create $ARTIFACT_FILENAME -volname "Friture" -fs HFS+ -srcfolder dist/friture.app
+    du -hs dist/friture.app
     du -hs $ARTIFACT_FILENAME
 else
     # Linux
     sudo apt-get update
-    sudo apt-get install -y libportaudio0
+    sudo apt-get install -y libportaudio2
     sudo apt-get install -y desktop-file-utils # for desktop-file-validate, used by pkg2appimage
 
     # about pep517, see https://github.com/pypa/pip/issues/6163
-    pip3 install -U pyinstaller --no-use-pep517
+    pip3 install -U pyinstaller==3.5 --no-use-pep517
 
     pyinstaller friture.spec -y --log-level=DEBUG
 

@@ -18,10 +18,7 @@
 # along with Friture.  If not, see <http://www.gnu.org/licenses/>.
 
 # version and date
-__version__ = "0.38"
-# NSIS (because of Windows) requires the version to be in the format X.X.X.X
-# the following line is read by the installer
-__versionXXXX__ = "0.38.0.0"
-__releasedate__ = "2019-02-17"
+__version__ = "0.41"
+__releasedate__ = "2019-12-08"
 
 __all__ = ["plotting"]

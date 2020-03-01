@@ -52,6 +52,7 @@ SMOOTH_DISPLAY_TIMER_PERIOD_MS = 10
 # (and text painting is costly)
 SLOW_TIMER_PERIOD_MS = 1000
 
+
 class Friture(QMainWindow, ):
 
     def __init__(self):
@@ -102,6 +103,7 @@ class Friture(QMainWindow, ):
         # timer ticks
         self.display_timer.timeout.connect(self.dockmanager.canvasUpdate)
         self.display_timer.timeout.connect(self.level_widget.canvasUpdate)
+        self.display_timer.timeout.connect(AudioBackend().fetchAudioData)
 
         # toolbar clicks
         self.ui.actionStart.triggered.connect(self.timer_toggle)
@@ -111,6 +113,15 @@ class Friture(QMainWindow, ):
 
         # restore the settings and widgets geometries
         self.restoreAppState()
+
+        # make sure the toolbar is shown
+        # in case it was closed by mistake (before it was made impossible)
+        self.ui.toolBar.setVisible(True)
+
+        # prevent from hiding or moving the toolbar
+        self.ui.toolBar.toggleViewAction().setVisible(False)
+        self.ui.toolBar.setMovable(False)
+        self.ui.toolBar.setFloatable(False)
 
         # start timers
         self.timer_toggle()
@@ -165,7 +176,7 @@ class Friture(QMainWindow, ):
     def migrateSettings(self):
         settings = QtCore.QSettings("Friture", "Friture")
 
-        #1. move the central widget to a normal dock
+        # 1. move the central widget to a normal dock
         if settings.contains("CentralWidget/type"):
             settings.beginGroup("CentralWidget")
             centralWidgetKeys = settings.allKeys()
@@ -173,18 +184,18 @@ class Friture(QMainWindow, ):
             settings.endGroup()
 
             if not settings.contains("Docks/central/type"):
-                #write them to a new dock instead
+                # write them to a new dock instead
                 for key, value in children.items():
                     settings.setValue("Docks/central/" + key, value)
 
-                #add the new dock name to dockNames
+                # add the new dock name to dockNames
                 docknames = settings.value("Docks/dockNames", [])
                 docknames = ["central"] + docknames
                 settings.setValue("Docks/dockNames", docknames)
 
             settings.remove("CentralWidget")
 
-        #2. remove any level widget
+        # 2. remove any level widget
         if settings.contains("Docks/dockNames"):
             docknames = settings.value("Docks/dockNames")
             newDockNames = []
@@ -230,6 +241,7 @@ class Friture(QMainWindow, ):
             AudioBackend().restart()
             self.dockmanager.restart()
 
+
 def qt_message_handler(mode, context, message):
     logger = logging.getLogger(__name__)
     if mode == QtCore.QtInfoMsg:
@@ -243,10 +255,12 @@ def qt_message_handler(mode, context, message):
     else:
         logger.debug(message)
 
+
 class StreamToLogger(object):
     """
     Fake file-like stream object that redirects writes to a logger instance.
     """
+
     def __init__(self, logger, log_level=logging.INFO):
         self.logger = logger
         self.log_level = log_level
@@ -258,6 +272,7 @@ class StreamToLogger(object):
 
     def flush(self):
         pass
+
 
 def main():
     # make the Python warnings go to Friture logger
@@ -286,11 +301,11 @@ def main():
     rootLogger.addHandler(fileHandler)
 
     if hasattr(sys, "frozen"):
-        # redirect stdout and stderr to the logger if this is a py2app or pyinstaller bundle
+        # redirect stdout and stderr to the logger if this is a pyinstaller bundle
         sys.stdout = StreamToLogger(logging.getLogger('STDOUT'), logging.INFO)
         sys.stderr = StreamToLogger(logging.getLogger('STDERR'), logging.ERROR)
     else:
-        # log to console if this is not a py2app or pyinstaller bundle
+        # log to console if this is not a pyinstaller bundle
         console = logging.StreamHandler()
         console.setLevel(logging.DEBUG)
         console.setFormatter(formatter)
@@ -301,7 +316,7 @@ def main():
 
     logger = logging.getLogger(__name__)
 
-    logger.info("Friture %s starting on %s (%s)", friture.__versionXXXX__, platform.system(), sys.platform)
+    logger.info("Friture %s starting on %s (%s)", friture.__version__, platform.system(), sys.platform)
 
     # make sure Qt loads the desktop OpenGL stack, rather than OpenGL ES or a software OpenGL
     # only the former option is compatible with the use of PyOpenGL
@@ -326,7 +341,7 @@ def main():
 
     if platform.system() == "Darwin":
         logger.info("Applying Mac OS-specific setup")
-        # help the py2app-packaged application find the Qt plugins (imageformats and platforms)
+        # help the packaged application find the Qt plugins (imageformats and platforms)
         pluginsPath = os.path.normpath(os.path.join(QApplication.applicationDirPath(), os.path.pardir, 'PlugIns'))
         logger.info("Adding the following to the Library paths: %s", pluginsPath)
         QApplication.addLibraryPath(pluginsPath)
